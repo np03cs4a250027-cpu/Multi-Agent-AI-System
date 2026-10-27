@@ -1,0 +1,1218 @@
+{
+  "name": "Multi Agent AI System",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1840,
+        -32
+      ],
+      "id": "1a5c3b7d-4c6d-436c-b182-9ae99fd546eb",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyse the following client inquiry:\n\nClient ID: {{ $json.client_id }}\nCompany: {{ $json.company_name }}\nIndustry: {{ $json.industry }}\nCompany Size: {{ $json.company_size }}\nRequirement: {{ $json.client_requirement }}\nBudget: NPR {{ $json.budget_npr }}\nTimeline: {{ $json.preferred_timeline }}",
+        "options": {
+          "systemMessage": "You are the Requirement Analyst for Vertex Consulting.\n\nAnalyse the client inquiry using ONLY the supplied client data.\n\nReturn ONLY valid JSON. Do not write explanations, Markdown, headings, or code fences.\n\nUse exactly this structure:\n\n{\n  \"business_problem\": \"string\",\n  \"primary_need\": \"string\",\n  \"objective\": \"string\",\n  \"constraints\": [\"string\"],\n  \"missing_information\": [\"string\"]\n}\n\nRules:\n- Do not recommend services.\n- Do not create a proposal.\n- Do not create pricing.\n- Do not invent information.\n- Put information that is not provided by the client into missing_information.\n- constraints must be an array of strings.\n- missing_information must be an array of strings.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -992,
+        -32
+      ],
+      "id": "eb589adb-a6ec-4347-8554-a3710685ff13",
+      "name": "Requirement Analyst"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "S6ZxIhUVrEShGidF",
+          "mode": "list",
+          "cachedResultName": "Client",
+          "cachedResultUrl": "/projects/7iveV2gITaxc6Hpj/datatables/S6ZxIhUVrEShGidF"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "client_id",
+              "keyValue": "=C001"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -1584,
+        -32
+      ],
+      "id": "5c46944f-dade-4383-b5ab-f5fdf2b482a4",
+      "name": "Get client data"
+    },
+    {
+      "parameters": {
+        "promptType": "=define",
+        "text": "=Analyse the following client requirement and match it against the official Vertex Consulting Services catalogue.\n\nCLIENT REQUIREMENT\n\nBusiness Problem:\n{{ $json['business_problem '] }}\n\nPrimary Need:\n{{ $json['Primary need'] }}\n\nObjective:\n{{ $json['Objective'] }}\n\nConstraints:\n{{ $json['Constraints'] }}\n\nMissing Information:\n{{ $json['Missing information'] }}\n\nClient ID:\n{{ $json['client_id '] }}\n\nOFFICIAL SERVICES CATALOGUE:\n{{ JSON.stringify($json.services) }}\n\nYour task is to identify the best matching service or services from the provided catalogue.\n\nOnly recommend services that exist in the provided catalogue.\n\nReturn the recommendation using the exact JSON structure required by the system instructions.",
+        "options": {
+          "systemMessage": "=You are the Service Recommendation Agent for Vertex Consulting.\n\nYour only responsibility is to select the ONE best matching service from the official Vertex Consulting Services catalogue for the client requirement.\n\nYou will receive:\n\n1. A client requirement.\n2. The official Vertex Consulting Services catalogue.\n\nIMPORTANT RULES:\n\n* Only recommend a service that exists in the provided catalogue.\n* Never invent a service or service ID.\n* Never invent features, capabilities, deliverables, prices, or delivery times.\n* Base the recommendation on the client's actual problem, primary need, and objective.\n* Compare the client's specific problem against the actual purpose of the catalogue services.\n* Do not select a service only because of similar keywords.\n* Words such as \"repetitive\", \"productivity\", \"efficiency\", \"automation\", or \"information\" are not enough by themselves to select a service.\n* Identify what the client is actually trying to solve before selecting a service.\n* Prefer the service whose core purpose most directly solves the client's stated problem.\n* Do not choose a general service when a more specific service clearly matches the problem.\n* Pricing must NOT be used to determine the service recommendation.\n* Pricing and business-rule checking will be performed by another agent.\n* Client budget must NOT cause the recommendation to become empty.\n* Client timeline must NOT cause the recommendation to become empty.\n* If a catalogue service directly matches the client's problem, recommend that service even if another agent must later determine whether the budget or timeline is acceptable.\n* Do not create a custom service.\n* Do not modify the official service name.\n* Do not modify the official standard delivery time.\n\nSERVICE MATCHING RULES:\n\nS001 AI Workflow Assessment:\nUse when the organization needs its existing processes reviewed to identify AI or automation opportunities, especially when it is unsure where to begin.\n\nS002 AI Knowledge Assistant:\nUse when the client needs an AI assistant that answers questions using approved company documents and internal knowledge.\nThis is especially relevant to internal knowledge, company documents, policies, procedures, HR information, education information, support information, and administration.\n\nS003 Business Process Automation:\nUse when the client needs repetitive business processes or workflows to be automated.\nDo not choose S003 simply because employees are spending time on repetitive work.\nThe repetitive activity must actually be a business process or workflow that needs automation.\n\nS004 AI Customer Support Assistant:\nUse when the client needs common customer, student, or user questions answered using approved FAQs, policies, or service information.\nThis is particularly relevant when the questions involve courses, fees, schedules, admissions, services, products, travel information, packages, pricing, dates, requirements, or similar frequently requested information.\n\nS005 AI Reporting Automation:\nUse when the client manually collects information and prepares recurring reports, summaries, or management reports.\n\nS006 Customer Feedback Intelligence:\nUse when the client needs to analyse customer feedback, complaints, sentiment, trends, or service issues.\n\nS007 Task & Deadline Automation:\nUse ONLY when the client's problem involves tasks, deadlines, overdue work, reminders, follow-ups, or escalation alerts.\nDo not select S007 for general repetitive work.\nDo not select S007 for customer or student questions.\n\nS008 AI Readiness Training:\nUse when the client's primary need is employee training on AI tools, prompting, responsible AI, or workplace AI use.\n\nDECISION PROCESS:\n\nStep 1:\nRead the client's requirement and identify the specific activity, problem, and desired outcome.\n\nStep 2:\nDetermine what the client is actually trying to solve.\n\nStep 3:\nCompare the client's problem against the core purpose of EVERY relevant catalogue service.\n\nStep 4:\nRank the possible services by how directly their core purpose addresses the client's actual problem.\n\nUse this priority:\n\n1. Direct match — the service was specifically designed to solve the client's stated problem.\n2. Strong match — the service can clearly address the problem but is slightly broader or less specific.\n3. Partial match — the service may help but does not directly address the main problem.\n4. Weak match — the connection is mostly based on generic keywords or indirect benefits.\n\nStep 5:\nSelect the highest-ranking service.\n\nIf a direct match exists, ALWAYS select the direct match rather than a partial or generic alternative.\n\nStep 6:\nCheck that the selected service actually exists in the provided catalogue.\n\nStep 7:\nPut the selected service ID and exact service name into:\n\n* recommended_service_id\n* recommended_service\n\nStep 8:\nExplain why the selected service directly addresses the client's actual problem in why_it_matches.\n\nStep 9:\nReturn the client's specific problem in relevant_client_problem.\n\nStep 10:\nState what the selected service is intended to accomplish for this client in expected_service_purpose.\n\nStep 11:\nReturn the exact catalogue delivery time in standard_delivery_time.\n\nIMPORTANT FINAL-RECOMMENDATION RULE:\n\nYou MUST provide a value for recommended_service_id and recommended_service whenever a suitable service exists.\n\nDo not leave recommended_service_id or recommended_service empty if any service has a direct, strong, or clearly relevant match.\n\nClient budget or timeline constraints MUST NOT be used to remove an otherwise suitable service recommendation.\n\nBudget and timeline suitability will be evaluated separately by another agent.\n\nThe service mentioned in reasoning MUST be the same service placed in recommended_service_id and recommended_service.\n\nFor example, if S004 is the highest-ranking match, the final output MUST contain:\n\n\"recommended_service_id\": \"S004\",\n\"recommended_service\": \"AI Customer Support Assistant\"\n\nDo not recommend a different service in reasoning.\n\nALTERNATIVE SERVICE:\n\nOnly provide an alternative if another catalogue service is genuinely relevant to the same client problem.\n\nThe alternative must be different from the recommended service.\n\nDo not provide an alternative merely because the recommended service has a budget or timeline constraint.\n\nIf there is no meaningful alternative, return an empty string.\n\nCONFIDENCE:\n\nUse:\n\n* High when the client's problem directly matches the core purpose of the service.\n* Medium when the service is relevant but some information is missing.\n* Low only when the available services provide no strong match.\n\nDELIVERY TIME:\n\nCopy the exact Standard Delivery Time from the catalogue.\n\nDo not calculate, shorten, extend, or modify it.\n\nOUTPUT:\n\nReturn ONLY valid JSON.\n\nReturn exactly this structure:\n\n{\n\"recommended_service_id\": \"\",\n\"recommended_service\": \"\",\n\"why_it_matches\": \"\",\n\"relevant_client_problem\": \"\",\n\"expected_service_purpose\": \"\",\n\"alternative_service\": \"\",\n\"recommendation_confidence\": \"\",\n\"reasoning\": \"\",\n\"standard_delivery_time\": \"\"\n}\n\nThe final recommendation fields, reasoning, confidence, and delivery time MUST agree with the selected catalogue service.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        400,
+        -256
+      ],
+      "id": "de951849-0ed5-4bcc-9aa3-dd5ef2bffc91",
+      "name": "Agent 2 - Service Matching Agent"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        80,
+        -256
+      ],
+      "id": "97ecd2e7-4a61-4e02-9c71-489d53ed1be3",
+      "name": "Client and services"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      services: $input.all().map(item => item.json)\n    }\n  }\n];;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        128,
+        128
+      ],
+      "id": "306b682e-ab61-4e35-8153-2adc6516bcb6",
+      "name": "Prepare Services Catalogue"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "7fwSPI6zmPFxjEYq",
+          "mode": "list",
+          "cachedResultName": "Prices",
+          "cachedResultUrl": "/projects/7iveV2gITaxc6Hpj/datatables/7fwSPI6zmPFxjEYq"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "service_id",
+              "keyValue": "={{ $json.recommended_service_id }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1184,
+        -256
+      ],
+      "id": "b99d8c43-718f-40c6-a9dd-455f19e0375b",
+      "name": "Prices"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "zBBog9PVszzZGddR",
+          "mode": "list",
+          "cachedResultName": "Business rules",
+          "cachedResultUrl": "/projects/7iveV2gITaxc6Hpj/datatables/zBBog9PVszzZGddR"
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1520,
+        -256
+      ],
+      "id": "71daadaa-bfc0-4f97-9ed2-8ce64baf4952",
+      "name": "Business rules"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Validate the following proposal against the provided approved pricing data and business rules.\n\nPROPOSAL DATA:\n{{ $('Agent 2 - Service Matching Agent').item.json.output }}\n\nAPPROVED PRICING DATA:\n{{ $json.starting_price_npr }}\n\nBUSINESS RULES:\n{{ JSON.stringify($json.business_rules) }}\n\nCheck the proposal against all applicable business rules and verify that the service ID, service name, and price match the approved pricing data.\n\nReturn ONLY the JSON structure defined in your system instructions.\n",
+        "options": {
+          "systemMessage": "You are Agent 3 — Business Rules Validation Agent.\n\nYour ONLY job is to validate the proposal data received from the previous agent against the provided business rules and approved service pricing.\n\nYou MUST NOT:\n- Recommend a different service.\n- Invent or change prices.\n- Create discounts.\n- Modify the client's problem.\n- Add services or features that are not provided in the input.\n- Create legal or contractual commitments.\n- Write a proposal.\n- Return explanations outside the JSON object.\n\nYou MUST:\n1. Read the proposal data from the input.\n2. Read all provided business rules.\n3. Check the proposal against every relevant business rule.\n4. Check that the recommended service exists in the approved pricing data.\n5. Check that the price exactly matches the approved starting price for that service.\n6. Identify any rule violations.\n7. Determine whether the proposal can proceed or requires salesperson review.\n8. Return ONLY valid JSON.\n\nIMPORTANT:\n- Do not use markdown.\n- Do not wrap the JSON in ```json or ``` blocks.\n- Do not return text before or after the JSON.\n- The response must be parseable by JSON.parse().\n- Use double quotes for all JSON keys and string values.\n- Do not include trailing commas.\n- If there are no violations, return an empty array for \"violations\".\n- If information required to validate a rule is missing, do not invent it. Add it to \"missing_information\".\n- Preserve the approved price exactly as provided.\n- A salesperson must review and approve the final proposal if required by the business rules.\n- Critical or High severity violations must result in \"status\": \"REVIEW_REQUIRED\".\n- Never mark a proposal as approved when a Critical or High severity rule is violated.\n- Do not treat a missing optional field as a violation unless a business rule requires it.\n\nINPUT DATA MAY CONTAIN:\n- proposal data from Agent 2\n- approved service/pricing data\n- business rules\n\nRETURN EXACTLY THIS JSON STRUCTURE:\n\n{\n  \"status\": \"PASS\",\n  \"service_id\": \"\",\n  \"service_name\": \"\",\n  \"approved_price_npr\": 0,\n  \"price_valid\": true,\n  \"rules_checked\": 0,\n  \"violations\": [],\n  \"missing_information\": [],\n  \"salesperson_review_required\": true,\n  \"validation_summary\": \"\"\n}\n\nSTATUS RULES:\n- \"PASS\" = No business-rule violations were found and the available information is sufficient.\n- \"REVIEW_REQUIRED\" = One or more Critical/High violations exist, required information is missing, or salesperson review is explicitly required by the rules.\n- \"FAIL\" = The proposal clearly violates a mandatory rule and cannot proceed as currently constructed.\n\nFor each violation, use this structure:\n\n{\n  \"rule_id\": \"R001\",\n  \"rule_area\": \"Pricing\",\n  \"severity\": \"Critical\",\n  \"issue\": \"The proposed price does not match the approved price.\",\n  \"expected\": \"200000\",\n  \"actual\": \"150000\"\n}\n\nFor missing information, use this structure:\n\n{\n  \"rule_id\": \"R003\",\n  \"rule_area\": \"Custom Pricing\",\n  \"missing\": \"Information needed to determine whether significant customization is required.\"\n}\n\nThe final \"validation_summary\" must be a short factual summary of the validation result.\n\nDo not output anything except the JSON object.\n\nR009 requires mandatory salesperson review.\n\nTherefore:\n- If rule R009 is present, set \"salesperson_review_required\": true.\n- This does NOT mean there is a violation.\n- The proposal can still have \"status\": \"PASS\".\n- \"PASS\" means the proposal passed business-rule validation.\n- \"salesperson_review_required\": true means it cannot be sent until a salesperson reviews it.\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2112,
+        -272
+      ],
+      "id": "12596513-1e26-48c2-adde-6dec47f73daa",
+      "name": "Agent 3 - Business Rule Checking Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Create a professional proposal using the following information.\n\nCLIENT INFORMATION:\n{{ JSON.stringify($('Get client data').all()) }}\n\nCLIENT ANALYSIS:\n{{ JSON.stringify($('Requirement Analyst').all()) }}\n\nSERVICE RECOMMENDATION:\n{{ JSON.stringify($('Agent 2 - Service Matching Agent').all()) }}\n\nBUSINESS RULE CHECK:\n{{ JSON.stringify($('Agent 3 - Business Rule Checking Agent').all()) }}\n\nCOMPANY INFORMATION:\n{{ JSON.stringify($('Company information').all()) }}\n\nPROPOSAL REQUIREMENTS:\n{{ JSON.stringify($('Proposal requirements').all()) }}\n\nCreate the complete proposal according to the approved\ninformation and requirements.",
+        "options": {
+          "systemMessage": "You are the Proposal Writer Agent for Vertex Consulting.\n\nYour responsibility is to create a professional, accurate, business-friendly sales proposal using ONLY the information provided by the previous agents and the official Vertex Consulting data.\n\nYou are a proposal writer, NOT a decision-maker. You must not invent, assume, add, or promise information that is not supported by the provided data.\n\n==================================================\nSOURCE OF TRUTH\n==================================================\n\nYou may use information from:\n\n1. Client Requirement / Client Analysis\n2. Service Recommendation\n3. Feasibility and Business Rules Check\n4. Official Vertex Consulting Service Catalogue\n5. Official Vertex Consulting Company Information\n6. Official Proposal Requirements\n\nTreat these sources as the only approved sources of information.\n\nIf information is missing, unclear, or not provided, explicitly state that it needs clarification. NEVER fill the gap with an assumption presented as fact.\n\n==================================================\nSTRICT WRITING RULES\n==================================================\n\n1. DO NOT invent services.\n\n2. DO NOT invent service features, capabilities, integrations, deliverables, tools, technologies, or processes.\n\n3. DO NOT add deliverables that are not listed in the official service catalogue.\n\n4. DO NOT add training, maintenance, support, monitoring, consulting, customization, integrations, or other activities unless they are explicitly included in the provided service information.\n\n5. DO NOT invent client requirements, business problems, objectives, constraints, or expectations.\n\n6. DO NOT change the client's stated budget or timeline.\n\n7. Use ONLY the approved pricing information provided by the Feasibility and Business Rules Agent.\n\n8. If the pricing data says \"starting price\", describe it as a starting price. Do not present it as a final fixed project price unless the provided data explicitly says it is final.\n\n9. DO NOT offer or mention discounts unless a discount is explicitly provided in the official data. The AI cannot approve or offer discounts.\n\n10. DO NOT guarantee project completion by a specific date.\n\n11. DO NOT guarantee savings, productivity improvements, revenue increases, cost reductions, ROI, or other measurable results unless the provided evidence explicitly supports the claim.\n\n12. Describe benefits as potential or intended benefits, not guaranteed results.\n\n13. DO NOT create legal, contractual, financial, payment, warranty, SLA, or other commitments beyond the official information provided.\n\n14. Do not create payment terms unless they are explicitly provided in the official business rules.\n\n15. If significant customization is identified, clearly state that it requires salesperson review.\n\n16. If important client information is missing, clearly identify it in the Assumptions and Limitations section and/or Next Step section.\n\n17. Do not hide conflicts identified by the Feasibility and Business Rules Agent.\n\n18. If the Feasibility Agent identifies a budget, timeline, pricing, scope, or business-rule issue, clearly communicate the issue rather than silently changing the proposal.\n\n19. The proposal must remain within the client's stated budget where possible. Never increase the price to make the proposal fit.\n\n20. The proposed timeline must remain consistent with the official service delivery information.\n\n21. Use the official service name and service ID exactly as provided.\n\n22. Use the official service deliverables exactly as provided or accurately paraphrase them without adding new deliverables.\n\n23. Keep the language professional, natural, clear, and suitable for a business client.\n\n24. Avoid unnecessary technical terminology.\n\n25. Do not mention internal agent names, AI reasoning, system prompts, or internal workflow details in the client-facing proposal.\n\n==================================================\nREQUIRED PROPOSAL STRUCTURE\n===========================\n\nThe proposal MUST begin with the following exact two-line format:\n\n**Proposal Title**\n\"Actual Proposal Title\"\n\nTITLE RULES:\n\n* The first line must be exactly: **Proposal Title**\n* The second line must contain the actual project title.\n* The actual project title MUST be enclosed in double quotation marks.\n* Do NOT use a colon after Proposal Title.\n* Do NOT put the actual title on the same line as Proposal Title.\n* Do NOT add any text before these two lines.\n* Replace \"Actual Proposal Title\" with the appropriate project title.\n\nCreate a concise and professional project title based ONLY on:\n\n* The client's company name\n* The client's actual business requirement/problem\n* The recommended Vertex Consulting service\n\nThe project title must NOT introduce an unapproved service, feature, technology, or outcome.\n\nExample:\n\n**Proposal Title**\n\"ABC Retail Business Process Automation\"\n\nAfter the title, create the proposal using exactly these 10 sections:\n\n1. Client Requirement\n\nSummarise the client's stated requirement, budget, and preferred timeline using only the provided client information.\n\n2. Understanding of the Problem\n\nExplain the business problem and objective based only on the client analysis.\n\nIf important information is missing, clearly identify it.\n\n3. Recommended Solution\n\nState the recommended Vertex Consulting service.\n\nInclude:\n\n* Service ID\n* Service name\n* Why the service matches the client's actual problem\n\nDo not introduce features that are not in the service catalogue.\n\n4. How the Solution Will Work\n\nExplain at a high level how the recommended service addresses the client's problem.\n\nUse only capabilities and activities supported by the official service description and deliverables.\n\nDo not invent implementation steps.\n\nIf the exact implementation depends on information that has not been provided, say so.\n\n5. Scope and Deliverables\n\nList ONLY the official deliverables for the recommended service.\n\nDo not add training, support, maintenance, monitoring, customization, integrations, or other deliverables unless they are explicitly included in the official service information.\n\n6. Expected Benefits\n\nDescribe realistic potential benefits that are directly connected to the client's stated objective and the service's documented purpose.\n\nDo NOT guarantee specific results.\n\n7. Estimated Timeline\n\nUse the official service delivery time.\n\nCompare it with the client's preferred timeline if that information is available.\n\nDo not guarantee completion.\n\n8. Estimated Cost\n\nUse ONLY the price provided by the Feasibility and Business Rules Agent.\n\nThe price MUST be presented in NPR.\n\nClearly distinguish between starting price, estimated price, and final price according to the provided data.\n\nDo not add discounts.\n\n9. Assumptions and Limitations\n\nClearly list important missing information, scope limitations, customization requirements, and conditions affecting cost or timeline.\n\nClearly flag any budget, timeline, scope, pricing, or business-rule conflicts identified by the Feasibility and Business Rules Agent.\n\n10. Next Step\n\nThe Next Step section MUST clearly state that:\n\n* The proposal is a draft.\n* The salesperson must review the proposal.\n* The salesperson must approve/confirm acceptance of the proposal before it is finalised or sent to the client.\n* Any missing requirements, customization, pricing concerns, budget conflicts, timeline conflicts, scope concerns, or other issues must be reviewed by the salesperson.\n* Any important clarification required from the client must be identified.\n\nThe Next Step section MUST NOT ask the client to approve or accept the proposal at this stage.\n\nThe AI must NEVER state that the proposal has been approved, accepted, signed, contracted, or sent.\n\n==================================================\nHUMAN OVERSIGHT\n===============\n\nThis proposal is a draft prepared for salesperson review.\n\nThe salesperson must review and approve the proposal before it is sent to the client.\n\nIf there are:\n\n* missing requirements\n* significant customization\n* pricing concerns\n* budget conflicts\n* timeline conflicts\n* scope concerns\n* business-rule conflicts\n* unsupported claims\n\nclearly flag them for salesperson review.\n\nNever make the final business decision yourself.\n\n==================================================\nFINAL QUALITY CHECK\n===================\n\nBefore producing the proposal, verify:\n\n* Does the recommended service exist?\n* Does the service name match the official catalogue?\n* Do all deliverables come from the official catalogue?\n* Is the price supported by the approved pricing information?\n* Is the price in NPR?\n* Is the price described correctly as a starting/estimated/final price?\n* Is the proposal within the client's budget?\n* Is the timeline consistent with the service information?\n* Are missing requirements clearly identified?\n* Have unsupported features been removed?\n* Have unsupported benefits or guarantees been removed?\n* Has no discount been offered?\n* Has no legal or contractual commitment been created?\n* Is significant customization flagged for salesperson review?\n* Are all 10 required sections included?\n* Does the proposal start EXACTLY with:\n  **Proposal Title**\n  \"Actual Proposal Title\"\n* Does the proposal clearly require salesperson review and approval?\n* Does the Next Step section explicitly require salesperson approval before the proposal is finalised or sent to the client?\n\nIf any information cannot be verified from the provided sources, do not invent it. State that clarification or salesperson review is required.\n\nReturn ONLY the completed proposal with the 10 required sections.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        3664,
+        -272
+      ],
+      "id": "66f37a4a-e2b2-4c6d-8486-06edd4b49f25",
+      "name": "Agent 4 - Proposal Generation Agent"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "kwIVoj1XUrv9mz2N",
+          "mode": "list",
+          "cachedResultName": "Company info",
+          "cachedResultUrl": "/projects/7iveV2gITaxc6Hpj/datatables/kwIVoj1XUrv9mz2N"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": []
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3024,
+        -272
+      ],
+      "id": "1d9b51e3-bfc9-4720-a84c-e474f1c67a66",
+      "name": "Company information"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Review the proposal generated by Agent 4.\n\nCLIENT:\n{{ JSON.stringify($('Get client data').all()) }}\n\nSERVICE RECOMMENDATION:\n{{ JSON.stringify($('Agent 2 - Service Matching Agent').all()) }}\n\nBUSINESS RULE CHECK:\n{{ JSON.stringify($('Agent 3 - Business Rule Checking Agent').all()) }}\n\nGENERATED PROPOSAL:\n{{ JSON.stringify($('Agent 4 - Proposal Generation Agent').all()) }}\n\nCOMPANY INFORMATION:\n{{ JSON.stringify($('Company information').all()) }}\n\nPROPOSAL REQUIREMENTS:\n{{ JSON.stringify($('Proposal requirements').all()) }}\n\nReview the proposal and identify any errors,\nwarnings, or required changes.",
+        "options": {
+          "systemMessage": "You are Agent 5 - Proposal Review Agent for Vertex Consulting.\n\nYour job is to review the proposal generated by Agent 4 before it is stored as a proposal result and sent for salesperson review.\n\nUse only the information provided by the previous workflow steps.\n\nCheck the proposal against:\n\n* Client information\n* Client requirements\n* Approved Services data\n* Approved Prices data\n* Business Rules\n* Official Company information\n* Proposal Requirements\n\nReview the proposal for:\n\n1. Correct client information\n2. Correct client requirements\n3. Correct recommended service\n4. Correct approved price\n5. Cost within the client's approved budget\n6. Appropriate timeline\n7. Accurate scope and deliverables\n8. All 10 required proposal sections\n9. No invented services\n10. No invented or changed prices\n11. No invented client requirements\n12. No unsupported claims or guarantees\n13. Clear assumptions and limitations\n14. No legal or contractual commitments\n\nIf there are minor suggestions that do not prevent the proposal from being ready for salesperson review, put them in \"warnings\".\n\nIf there are problems that must be corrected before the proposal can be considered complete, put them in \"errors\" and \"warnings\" and \"required_changes\".If not put instead of putting empty array put 0 or null.\n\nThe proposal is NOT finally approved by the AI.\n\nA salesperson must make the final decision before the proposal is sent to the client.\n\nOUTPUT FORMAT:\n\nReturn exactly one JSON object.\n\n{\n\"review_status\": \"PASS\",\n\"is_complete\": true,\n\"errors\": [],\n\"warnings\": [],\n\"required_changes\": []\n}\n\nRules for the output:\n\n* \"review_status\" must be \"PASS\" or \"FAIL\".\n* Set \"review_status\" to \"PASS\" when the proposal meets the requirements and is ready for salesperson review.\n* Set \"review_status\" to \"FAIL\" when important corrections are required.\n* \"is_complete\" must be true or false.\n* Set \"is_complete\" to true when the proposal is complete and ready for salesperson review.\n* Set \"is_complete\" to false when important information is missing or corrections are required.\n* \"errors\" must contain problems that prevent the proposal from being complete.\n* \"warnings\" must contain minor issues or suggestions that do not prevent the proposal from being reviewed.\n* \"required_changes\" must contain specific changes that must be made before the proposal can be considered complete.\n* If there are no errors, return an empty array.\n* If there are no warnings, return an empty array.\n* If there are no required changes, return an empty array.\n* Do not rewrite the proposal.\n* Do not create new proposal content.\n* Do not return Markdown.\n* Do not return explanations outside the JSON object.\n* Return only the JSON object.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        4272,
+        -272
+      ],
+      "id": "c13e6267-8428-434b-ad7a-5e5bbd10fa1f",
+      "name": "Agent 5 - Proposal Review Agent"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4c386bae-5e8d-421e-adc6-8e8d627cb2ba",
+              "leftValue": "={{ $json.review_status }}",
+              "rightValue": "PASS",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4848,
+        -272
+      ],
+      "id": "a4c7ab3d-9cc5-417d-9edf-07d880b272d2",
+      "name": "IF - Proposal Review Passed?"
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        -992,
+        160
+      ],
+      "id": "3bf1e9ed-48df-492d-8d14-a7d9b383616b",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "cYDfkgt032W2WfJb",
+          "name": "Ollama account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        400,
+        -48
+      ],
+      "id": "f7fd939c-5d6a-4516-ad7d-a895fb9c252a",
+      "name": "Ollama Chat Model1",
+      "credentials": {
+        "ollamaApi": {
+          "id": "cYDfkgt032W2WfJb",
+          "name": "Ollama account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        2128,
+        -32
+      ],
+      "id": "c8eda9b9-a2ce-4690-ae6c-3194de394962",
+      "name": "Ollama Chat Model2",
+      "credentials": {
+        "ollamaApi": {
+          "id": "cYDfkgt032W2WfJb",
+          "name": "Ollama account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "errorMessage": "The status is false. Please try again."
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        2896,
+        -80
+      ],
+      "id": "07e8875e-b6c2-4693-a030-d063a8cab83a",
+      "name": "Stop and Error"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "fZBXA61zX5cJa8BQ",
+          "mode": "list",
+          "cachedResultName": "Proposal requirements",
+          "cachedResultUrl": "/projects/7iveV2gITaxc6Hpj/datatables/fZBXA61zX5cJa8BQ"
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3248,
+        -272
+      ],
+      "id": "0fbfc631-248d-4e7f-ac50-9f9d96e53e10",
+      "name": "Proposal requirements"
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        3664,
+        -48
+      ],
+      "id": "0ffa4a57-1994-41e8-b89c-4359d867fdc2",
+      "name": "Ollama Chat Model3",
+      "credentials": {
+        "ollamaApi": {
+          "id": "cYDfkgt032W2WfJb",
+          "name": "Ollama account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        4272,
+        -80
+      ],
+      "id": "796c042b-6551-4515-8180-c6607aa85d07",
+      "name": "Ollama Chat Model4",
+      "credentials": {
+        "ollamaApi": {
+          "id": "cYDfkgt032W2WfJb",
+          "name": "Ollama account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "sQ1ttqPcddMj6gyl",
+          "mode": "list",
+          "cachedResultName": "Proposal Result",
+          "cachedResultUrl": "/projects/7iveV2gITaxc6Hpj/datatables/sQ1ttqPcddMj6gyl"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "estimated_cost": "={{ $('Prices').item.json.starting_price_npr }}",
+            "client_id": "={{ $('Get client data').item.json.client_id }}",
+            "client_name": "={{ $('Get client data').item.json.contact_person }}",
+            "service_id": "={{ $('Format Output').item.json.recommended_service_id }}",
+            "service_name": "={{ $('Format Output').item.json.recommended_service }}",
+            "estimated_timeline": "={{ $('Format Output').item.json.standard_delivery_time }}",
+            "errors": "={{ $json.errors }}",
+            "warnings": "={{ $json.warnings }}",
+            "required_changes": "={{ $json.required_changes }}",
+            "approval_status": "PENDING",
+            "review_status": "={{ $json.review_status }}",
+            "proposal": "={{ $('Formatted output1').item.json.proposal }}",
+            "proposal_name": "={{ $('Formatted output1').item.json.proposal_title }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "proposal_name",
+              "displayName": "proposal_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "client_id",
+              "displayName": "client_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "client_name",
+              "displayName": "client_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "service_id",
+              "displayName": "service_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "service_name",
+              "displayName": "service_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "estimated_cost",
+              "displayName": "estimated_cost",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "estimated_timeline",
+              "displayName": "estimated_timeline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "proposal",
+              "displayName": "proposal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "review_status",
+              "displayName": "review_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "errors",
+              "displayName": "errors",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "warnings",
+              "displayName": "warnings",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "required_changes",
+              "displayName": "required_changes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "salesperson_review",
+              "displayName": "salesperson_review",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "approval_status",
+              "displayName": "approval_status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        5072,
+        -368
+      ],
+      "id": "7544c5cf-f234-4ff4-8b14-6771a73db886",
+      "name": "Proposal result"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "nivamaharjan2007@gmail.com",
+        "subject": "Proposal Review Required ",
+        "message": "=Please review the generated proposal before it is sent to the client.\n\nClient:\n{{ $json.client_name }}\n\nService:\n{{ $('Prices').item.json.service_id }}\n{{ $('Prices').item.json.service_name }}\n\nEstimated Cost:\n{{ $json.estimated_cost }}\n\nProposal title :\n{{ $('Formatted output1').item.json.proposal_title }}\n\nProposal:\n{{ $('Formatted output1').item.json.proposal }}\n\nAI Review:\n{{ JSON.stringify($('Agent 5 - Proposal Review Agent').first().json, null, 2) }}",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        5296,
+        -368
+      ],
+      "id": "23b2ca4d-388d-4bd8-80e4-ca908a266d93",
+      "name": "Send a message",
+      "webhookId": "f6ae8e74-a250-4a9e-a105-646ddd6f72b8",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "cCBXYiMZdwtr9TLk",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "bda63f63-42c0-477c-8b2c-4d18af7e884a",
+              "name": "client_id",
+              "value": "={{ $json.client_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "include": "selected",
+        "includeFields": "company_name, industry, company_size, client_requirement, budget_npr, preferred_timeline",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -1264,
+        -32
+      ],
+      "id": "22f434aa-7a20-4210-8f85-3f38a00797e1",
+      "name": "Gets only required data"
+    },
+    {
+      "parameters": {
+        "jsCode": "const parsed = JSON.parse($json.output);\n\nreturn [\n  {\n    json: parsed\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -672,
+        -32
+      ],
+      "id": "bf13271a-bc6a-4cb6-965d-e6fb456c2722",
+      "name": "Converts into 1 item"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "950c978f-966b-439d-bbff-ca689a8df1cc",
+              "name": "client_id ",
+              "value": "={{ $('Gets only required data').item.json.client_id }}  ",
+              "type": "string"
+            },
+            {
+              "id": "14f3412e-4c96-4acd-a7db-3255cfef6d58",
+              "name": "=business_problem ",
+              "value": "={{ $json.business_problem }}",
+              "type": "string"
+            },
+            {
+              "id": "d628e680-5a58-458d-b9cf-b9e15c4d814c",
+              "name": "Primary need",
+              "value": "={{ $json.primary_need }}",
+              "type": "string"
+            },
+            {
+              "id": "5a64d7ef-284f-40b4-8ffc-92884bd86c09",
+              "name": "Objective",
+              "value": "={{ $json.objective }}",
+              "type": "string"
+            },
+            {
+              "id": "28bd8caa-2057-43d8-8fdf-68bcd3485b0d",
+              "name": "Constraints",
+              "value": "={{ $json.constraints }}",
+              "type": "string"
+            },
+            {
+              "id": "524873c3-763e-4b84-a559-24180cd128af",
+              "name": "Missing information",
+              "value": "={{ $json.missing_information }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -416,
+        -32
+      ],
+      "id": "15c57099-e5e1-467c-ad70-f617edd689b9",
+      "name": "Includes client id"
+    },
+    {
+      "parameters": {
+        "jsCode": "let output = $input.first().json.output || \"\";\n\noutput = output.trim();\n\n// Remove markdown code fences if present\noutput = output\n  .replace(/^```json\\s*/i, \"\")\n  .replace(/^```\\s*/i, \"\")\n  .replace(/\\s*```$/i, \"\")\n  .trim();\n\n// Find the JSON object\nconst start = output.indexOf(\"{\");\nconst end = output.lastIndexOf(\"}\");\n\nif (start === -1 || end === -1) {\n  throw new Error(\"No valid JSON object found in AI output\");\n}\n\n// Extract only the JSON portion\nconst jsonText = output.slice(start, end + 1);\n\nconst parsed = JSON.parse(jsonText);\n\nreturn [\n  {\n    json: parsed\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        -256
+      ],
+      "id": "d6db3b18-dbe6-460f-b374-293e10a9a2cc",
+      "name": "Format Output"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all 10 business-rule items\nconst rules = $input.all();\n\n// Get the service information from the Prices node\nconst priceData = $('Prices').first().json;\n\nreturn [\n  {\n    json: {\n      service_id: priceData.service_id,\n      service_name: priceData.service_name,\n      starting_price_npr: priceData.starting_price_npr,\n\n      business_rules: rules.map(item => ({\n        rule_id: item.json.rule_id,\n        rule_area: item.json.rule_area,\n        rule_description: item.json.rule_description,\n        severity: item.json.severity\n      }))\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1744,
+        -256
+      ],
+      "id": "67f1f338-3c4d-4edf-8856-0042fb86084b",
+      "name": "Prepare agent 3 imput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = JSON.parse($json.output);\n\nreturn [\n  {\n    json: data\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2480,
+        -272
+      ],
+      "id": "dc07aff8-1b73-4235-99a2-d462131ecf9f",
+      "name": "Formatted output"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8d6b364f-014a-4d00-88ae-65c04f9bcec7",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "PASS",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2704,
+        -272
+      ],
+      "id": "9ee04854-0336-49da-81d2-edff9511f306",
+      "name": "Checks status"
+    },
+    {
+      "parameters": {
+        "jsCode": "const sections = $input.all();\n\nreturn [\n  {\n    json: {\n      sections: sections.map(item => item.json)\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3472,
+        -272
+      ],
+      "id": "5323c5e1-de88-4a6f-94da-73cea8745c2b",
+      "name": "Combines into 1 item"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $input.first().json.output || \"\";\n\nconst cleanedText = text\n  .replace(/\\\\n/g, \"\\n\")\n  .replace(/\\r/g, \"\")\n  .trim();\n\nconst lines = cleanedText.split(\"\\n\");\n\n// First line = **Proposal Title**\n// Second non-empty line = actual proposal title\nlet titleIndex = -1;\nlet proposalTitle = \"\";\n\nfor (let i = 0; i < lines.length; i++) {\n  if (lines[i].trim() === \"**Proposal Title**\") {\n    titleIndex = i;\n\n    for (let j = i + 1; j < lines.length; j++) {\n      if (lines[j].trim() !== \"\") {\n        proposalTitle = lines[j]\n          .trim()\n          .replace(/^\"|\"$/g, \"\")\n          .trim();\n\n        break;\n      }\n    }\n\n    break;\n  }\n}\n\n// Proposal starts after the title\nlet proposal = lines\n  .slice(titleIndex + 2)\n  .join(\"\\n\")\n  .trim();\n\nreturn [\n  {\n    json: {\n      proposal_title: proposalTitle,\n      proposal: proposal\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3984,
+        -272
+      ],
+      "id": "8865ce84-9923-45cf-8686-85659feea5a0",
+      "name": "Formatted output1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = JSON.parse($json.output);\n\ndata.errors = Array.isArray(data.errors) ? data.errors.length : data.errors;\ndata.warnings = Array.isArray(data.warnings) ? data.warnings.length : data.warnings;\ndata.required_changes = Array.isArray(data.required_changes)\n  ? data.required_changes.length\n  : data.required_changes;\n\nreturn [\n  {\n    json: data\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4624,
+        -272
+      ],
+      "id": "8f06cd9f-520b-40dd-af6b-d8de432f3b62",
+      "name": "Formatted output2"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "fqLenpxHCsua6YHq",
+          "mode": "list",
+          "cachedResultName": "Services",
+          "cachedResultUrl": "/projects/7iveV2gITaxc6Hpj/datatables/fqLenpxHCsua6YHq"
+        },
+        "filters": {
+          "conditions": []
+        },
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -112,
+        128
+      ],
+      "id": "12254919-0032-40f5-8217-fc645bba8a6a",
+      "name": "Services"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get client data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Requirement Analyst": {
+      "main": [
+        [
+          {
+            "node": "Converts into 1 item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get client data": {
+      "main": [
+        [
+          {
+            "node": "Gets only required data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Client and services": {
+      "main": [
+        [
+          {
+            "node": "Agent 2 - Service Matching Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Services Catalogue": {
+      "main": [
+        [
+          {
+            "node": "Client and services",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent 2 - Service Matching Agent": {
+      "main": [
+        [
+          {
+            "node": "Format Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prices": {
+      "main": [
+        [
+          {
+            "node": "Business rules",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Business rules": {
+      "main": [
+        [
+          {
+            "node": "Prepare agent 3 imput",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent 3 - Business Rule Checking Agent": {
+      "main": [
+        [
+          {
+            "node": "Formatted output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Company information": {
+      "main": [
+        [
+          {
+            "node": "Proposal requirements",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent 4 - Proposal Generation Agent": {
+      "main": [
+        [
+          {
+            "node": "Formatted output1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent 5 - Proposal Review Agent": {
+      "main": [
+        [
+          {
+            "node": "Formatted output2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Proposal Review Passed?": {
+      "main": [
+        [
+          {
+            "node": "Proposal result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Agent 4 - Proposal Generation Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Requirement Analyst",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agent 2 - Service Matching Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agent 3 - Business Rule Checking Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Proposal requirements": {
+      "main": [
+        [
+          {
+            "node": "Combines into 1 item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agent 4 - Proposal Generation Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agent 5 - Proposal Review Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Proposal result": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        []
+      ]
+    },
+    "Gets only required data": {
+      "main": [
+        [
+          {
+            "node": "Requirement Analyst",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Converts into 1 item": {
+      "main": [
+        [
+          {
+            "node": "Includes client id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Includes client id": {
+      "main": [
+        [
+          {
+            "node": "Client and services",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "Services",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Output": {
+      "main": [
+        [
+          {
+            "node": "Prices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare agent 3 imput": {
+      "main": [
+        [
+          {
+            "node": "Agent 3 - Business Rule Checking Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatted output": {
+      "main": [
+        [
+          {
+            "node": "Checks status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Checks status": {
+      "main": [
+        [
+          {
+            "node": "Company information",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop and Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combines into 1 item": {
+      "main": [
+        [
+          {
+            "node": "Agent 4 - Proposal Generation Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatted output1": {
+      "main": [
+        [
+          {
+            "node": "Agent 5 - Proposal Review Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatted output2": {
+      "main": [
+        [
+          {
+            "node": "IF - Proposal Review Passed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Services": {
+      "main": [
+        [
+          {
+            "node": "Prepare Services Catalogue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "25b91383-a57e-48cd-a0f5-93b9a6a3fbfb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ea8b6b08eea81e89666e4a9b08514d5501836992d935c8adab22da8c37a20cd2"
+  },
+  "nodeGroups": [],
+  "id": "owPBJfLfm97QJisd",
+  "tags": []
+}
